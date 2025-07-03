@@ -90,6 +90,10 @@ const loadingIndicator = document.getElementById('loadingIndicator');
 const devotionalOutput = document.getElementById('devotionalOutput');
 const devotionalTextDiv = document.getElementById('devotionalText');
 
+// Get references to new Journal related HTML elements
+const viewJournalBtn = document.getElementById('viewJournalBtn');
+const journalEntriesDiv = document.getElementById('journalEntries');
+
 /**
  * Displays a custom message box with a given message.
  * @param {string} message The message to display.
@@ -145,6 +149,7 @@ messageBoxCloseBtn.addEventListener('click', hideMessageBox);
 // Show an in-app notification when the page loads
 window.onload = () => {
     showAppNotification("Welcome back! Don't forget to reflect on your day and generate your devotional.", 'info');
+    loadJournalEntries(); // Load journal entries when the page loads
 };
 
 /**
@@ -179,7 +184,7 @@ async function generateDevotional() {
         // through a backend server to avoid exposing your API key directly in client-side code.
         // For this learning project, we're using a direct client-side call as per instructions,
         // assuming the Canvas environment handles the key securely.)
-        const apiKey = "AIzaSyAj0SF2MdUlT0aW-yYK7NGACgcqTU-54Ag"; // Canvas will automatically provide this in runtime
+        const apiKey = ""; // Canvas will automatically provide this in runtime
 
         // Construct the API URL
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -209,6 +214,11 @@ async function generateDevotional() {
             devotionalTextDiv.textContent = devotional; // Display the devotional
             devotionalOutput.classList.remove('hidden'); // Make the output section visible
             showAppNotification("Devotional generated successfully!", 'success'); // Show success notification
+
+            // --- NEW: Save to Journal after successful generation ---
+            saveJournalEntry(dailySummary, devotional);
+            // --- END NEW ---
+
         } else {
             showMessageBox("Could not generate devotional. Unexpected API response format.");
             console.error("Unexpected API response:", result);
@@ -224,8 +234,78 @@ async function generateDevotional() {
     }
 }
 
+/**
+ * Saves a new journal entry to localStorage.
+ * @param {string} summary The daily summary provided by the user.
+ * @param {string} devotional The AI-generated devotional.
+ */
+function saveJournalEntry(summary, devotional) {
+    // Get existing entries or initialize an empty array
+    const existingEntries = JSON.parse(localStorage.getItem('devotionalJournal')) || [];
+
+    // Create a new entry object
+    const newEntry = {
+        date: new Date().toISOString(), // Store date in ISO format for easy sorting
+        summary: summary,
+        devotional: devotional
+    };
+
+    // Add the new entry to the beginning of the array (most recent first)
+    existingEntries.unshift(newEntry);
+
+    // Save the updated array back to localStorage
+    localStorage.setItem('devotionalJournal', JSON.stringify(existingEntries));
+
+    // Reload and display entries to show the new one
+    loadJournalEntries();
+}
+
+/**
+ * Loads and displays all journal entries from localStorage.
+ */
+function loadJournalEntries() {
+    const existingEntries = JSON.parse(localStorage.getItem('devotionalJournal')) || [];
+
+    // Clear current entries display
+    journalEntriesDiv.innerHTML = '';
+
+    if (existingEntries.length === 0) {
+        journalEntriesDiv.innerHTML = '<p class="text-gray-600 text-center">No entries yet. Generate your first devotional!</p>';
+        return;
+    }
+
+    // Create HTML for each entry
+    existingEntries.forEach(entry => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'bg-white p-4 rounded-lg shadow-sm mb-4 border border-gray-100';
+
+        // Format date for display
+        const entryDate = new Date(entry.date).toLocaleString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        entryDiv.innerHTML = `
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">${entryDate}</h3>
+            <p class="text-gray-700 mb-2"><strong>My Day:</strong> ${entry.summary}</p>
+            <p class="text-gray-700"><strong>Devotional:</strong> ${entry.devotional}</p>
+        `;
+        journalEntriesDiv.appendChild(entryDiv);
+    });
+}
+
 // Add event listener to the Generate Devotional button
 generateDevotionalBtn.addEventListener('click', generateDevotional);
+
+// Add event listener to the View Journal button
+viewJournalBtn.addEventListener('click', () => {
+    journalEntriesDiv.classList.toggle('hidden'); // Toggle visibility of the journal entries
+    if (!journalEntriesDiv.classList.contains('hidden')) {
+        viewJournalBtn.textContent = 'Hide Journal';
+        loadJournalEntries(); // Ensure entries are loaded/reloaded when shown
+    } else {
+        viewJournalBtn.textContent = 'View Journal';
+    }
+});
 
     </script>
 </body>
