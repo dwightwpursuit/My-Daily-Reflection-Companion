@@ -76,30 +76,35 @@
     </div>
 
     <script>
-// Get references to HTML elements
+// Get references to HTML elements (existing)
 const messageBox = document.getElementById('messageBox');
 const messageText = document.getElementById('messageText');
 const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
-
-// Get references to the new in-app notification elements
 const appNotification = document.getElementById('appNotification');
 const appNotificationText = document.getElementById('appNotificationText');
+
+// Get references to new AI generation related HTML elements
+const dailySummaryTextarea = document.getElementById('dailySummary');
+const generateDevotionalBtn = document.getElementById('generateDevotionalBtn');
+const loadingIndicator = document.getElementById('loadingIndicator');
+const devotionalOutput = document.getElementById('devotionalOutput');
+const devotionalTextDiv = document.getElementById('devotionalText');
 
 /**
  * Displays a custom message box with a given message.
  * @param {string} message The message to display.
  */
 function showMessageBox(message) {
-    messageText.textContent = message; // Set the message text
-    messageBox.classList.remove('hidden'); // Make the message box visible
+    messageText.textContent = message;
+    messageBox.classList.remove('hidden');
 }
 
 /**
  * Hides the custom message box.
  */
 function hideMessageBox() {
-    messageBox.classList.add('hidden'); // Hide the message box
-    messageText.textContent = ''; // Clear the message text
+    messageBox.classList.add('hidden');
+    messageText.textContent = '';
 }
 
 /**
@@ -109,10 +114,7 @@ function hideMessageBox() {
  */
 function showAppNotification(message, type = 'info') {
     appNotificationText.textContent = message;
-    // Reset classes to default info style
-    appNotification.className = 'hidden bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-lg shadow-md';
-
-    // Apply type-specific styling
+    appNotification.className = 'hidden bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-lg shadow-md'; // Reset classes
     if (type === 'success') {
         appNotification.classList.replace('bg-blue-100', 'bg-green-100');
         appNotification.classList.replace('border-blue-500', 'border-green-500');
@@ -126,28 +128,104 @@ function showAppNotification(message, type = 'info') {
         appNotification.classList.replace('border-blue-500', 'border-red-500');
         appNotification.classList.replace('text-blue-700', 'text-red-700');
     }
-
-    appNotification.classList.remove('hidden'); // Make the notification visible
+    appNotification.classList.remove('hidden');
 }
 
 /**
  * Hides the in-app notification banner.
  */
 function hideAppNotification() {
-    appNotification.classList.add('hidden'); // Hide the notification
-    appNotificationText.textContent = ''; // Clear the message text
+    appNotification.classList.add('hidden');
+    appNotificationText.textContent = '';
 }
-
 
 // Add event listener to the close button of the message box
 messageBoxCloseBtn.addEventListener('click', hideMessageBox);
 
-// Show an in-app notification when the page loads, as a reminder
+// Show an in-app notification when the page loads
 window.onload = () => {
     showAppNotification("Welcome back! Don't forget to reflect on your day and generate your devotional.", 'info');
-    // You can set a timeout to hide it automatically after a few seconds if desired
-    // setTimeout(hideAppNotification, 5000);
 };
+
+/**
+ * Handles the generation of the devotional.
+ * This function is asynchronous because it makes a network request.
+ */
+async function generateDevotional() {
+    const dailySummary = dailySummaryTextarea.value.trim(); // Get and trim the user's input
+
+    // Basic input validation
+    if (!dailySummary) {
+        showMessageBox("Please enter your daily summary before generating a devotional.");
+        return; // Stop the function if input is empty
+    }
+
+    // Show loading indicator and hide previous output
+    loadingIndicator.classList.remove('hidden');
+    devotionalOutput.classList.add('hidden');
+    devotionalTextDiv.textContent = ''; // Clear previous devotional text
+    generateDevotionalBtn.disabled = true; // Disable button during generation
+
+    try {
+        // Construct the prompt for the AI
+        const prompt = `As a helpful and spiritual assistant, please generate a short (under 150 words) inspirational devotional based on the following summary of my day:\n\nSummary of my day: ${dailySummary}\n\nPlease ensure the devotional includes one relevant Bible verse (NIV translation preferred), cited clearly (e.g., John 3:16 NIV), and ends with a brief, uplifting prayer related to the devotional's theme. The tone should be comforting and encouraging.`;
+
+        // Prepare the payload for the Gemini API call
+        let chatHistory = [];
+        chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+        const payload = { contents: chatHistory };
+
+        // API Key (IMPORTANT: In a real-world production app, you would proxy this
+        // through a backend server to avoid exposing your API key directly in client-side code.
+        // For this learning project, we're using a direct client-side call as per instructions,
+        // assuming the Canvas environment handles the key securely.)
+        const apiKey = ""; // Canvas will automatically provide this in runtime
+
+        // Construct the API URL
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        // Make the API call to Gemini
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        // Check if the response was successful (HTTP status 2xx)
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('API Error:', errorData);
+            showMessageBox(`Failed to generate devotional. API Error: ${errorData.error.message || response.statusText}`);
+            return;
+        }
+
+        const result = await response.json();
+
+        // Extract the devotional text from the API response
+        if (result.candidates && result.candidates.length > 0 &&
+            result.candidates[0].content && result.candidates[0].content.parts &&
+            result.candidates[0].content.parts.length > 0) {
+            const devotional = result.candidates[0].content.parts[0].text;
+            devotionalTextDiv.textContent = devotional; // Display the devotional
+            devotionalOutput.classList.remove('hidden'); // Make the output section visible
+            showAppNotification("Devotional generated successfully!", 'success'); // Show success notification
+        } else {
+            showMessageBox("Could not generate devotional. Unexpected API response format.");
+            console.error("Unexpected API response:", result);
+        }
+
+    } catch (error) {
+        console.error("Error during devotional generation:", error);
+        showMessageBox("An error occurred while generating the devotional. Please try again.");
+    } finally {
+        // Always hide loading indicator and re-enable button
+        loadingIndicator.classList.add('hidden');
+        generateDevotionalBtn.disabled = false;
+    }
+}
+
+// Add event listener to the Generate Devotional button
+generateDevotionalBtn.addEventListener('click', generateDevotional);
 
     </script>
 </body>
