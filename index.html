@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Daily Reflection Companion</title>
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a clean look */
+        body {
+            font-family: "Inter", sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-100 to-purple-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all duration-300 hover:scale-[1.01]">
+        <h1 class="text-4xl font-extrabold text-center text-gray-800 mb-6">My Daily Reflection Companion</h1>
+        <p class="text-center text-gray-600 mb-8">Reflect on your day and receive an inspirational devotional.</p>
+
+        <!-- In-App Notification Banner (hidden by default) -->
+        <div id="appNotification" class="hidden bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-lg shadow-md" role="alert">
+            <p class="font-bold">Welcome Back!</p>
+            <p id="appNotificationText">Don't forget to reflect on your day and generate your devotional.</p>
+        </div>
+
+        <!-- Input Section -->
+        <div class="mb-6">
+            <label for="dailySummary" class="block text-gray-700 text-lg font-semibold mb-2">What was your day like?</label>
+            <textarea id="dailySummary" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 resize-y min-h-[120px] shadow-sm" placeholder="e.g., Today was productive, I finished a big project and feel a sense of accomplishment."></textarea>
+        </div>
+
+        <!-- Action Button -->
+        <div class="mb-8 text-center">
+            <button id="generateDevotionalBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                Generate Devotional
+            </button>
+        </div>
+
+        <!-- Loading Indicator (hidden by default) -->
+        <div id="loadingIndicator" class="hidden text-center text-blue-600 font-medium mb-6">
+            Generating your devotional...
+        </div>
+
+        <!-- Output Section for Devotional -->
+        <div id="devotionalOutput" class="bg-blue-50 p-6 rounded-lg border border-blue-200 shadow-inner hidden">
+            <h2 class="text-2xl font-bold text-blue-800 mb-3">Your Daily Devotional</h2>
+            <div id="devotionalText" class="text-gray-800 leading-relaxed">
+                <!-- Devotional text will be inserted here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Message Box for Alerts (instead of alert()) -->
+        <div id="messageBox" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+                <p id="messageText" class="text-gray-800 mb-4"></p>
+                <button id="messageBoxCloseBtn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full">
+                    OK
+                </button>
+            </div>
+        </div>
+
+        <!-- Journal Section (initially hidden) -->
+        <div class="mt-8 pt-8 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Your Reflection Journal</h2>
+            <div class="text-center mb-4">
+                <button id="viewJournalBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow-md transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300">
+                    View Journal
+                </button>
+            </div>
+            <div id="journalEntries" class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner hidden max-h-96 overflow-y-auto">
+                <!-- Journal entries will be loaded here by JavaScript -->
+                <p class="text-gray-600 text-center">No entries yet. Generate your first devotional!</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+// Get references to HTML elements
+const messageBox = document.getElementById('messageBox');
+const messageText = document.getElementById('messageText');
+const messageBoxCloseBtn = document.getElementById('messageBoxCloseBtn');
+
+// Get references to the new in-app notification elements
+const appNotification = document.getElementById('appNotification');
+const appNotificationText = document.getElementById('appNotificationText');
+
+/**
+ * Displays a custom message box with a given message.
+ * @param {string} message The message to display.
+ */
+function showMessageBox(message) {
+    messageText.textContent = message; // Set the message text
+    messageBox.classList.remove('hidden'); // Make the message box visible
+}
+
+/**
+ * Hides the custom message box.
+ */
+function hideMessageBox() {
+    messageBox.classList.add('hidden'); // Hide the message box
+    messageText.textContent = ''; // Clear the message text
+}
+
+/**
+ * Displays the in-app notification banner with a given message.
+ * @param {string} message The message to display in the banner.
+ * @param {string} type Optional. 'info', 'success', 'warning', 'error'. Defaults to 'info'.
+ */
+function showAppNotification(message, type = 'info') {
+    appNotificationText.textContent = message;
+    // Reset classes to default info style
+    appNotification.className = 'hidden bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-lg shadow-md';
+
+    // Apply type-specific styling
+    if (type === 'success') {
+        appNotification.classList.replace('bg-blue-100', 'bg-green-100');
+        appNotification.classList.replace('border-blue-500', 'border-green-500');
+        appNotification.classList.replace('text-blue-700', 'text-green-700');
+    } else if (type === 'warning') {
+        appNotification.classList.replace('bg-blue-100', 'bg-yellow-100');
+        appNotification.classList.replace('border-blue-500', 'border-yellow-500');
+        appNotification.classList.replace('text-blue-700', 'text-yellow-700');
+    } else if (type === 'error') {
+        appNotification.classList.replace('bg-blue-100', 'bg-red-100');
+        appNotification.classList.replace('border-blue-500', 'border-red-500');
+        appNotification.classList.replace('text-blue-700', 'text-red-700');
+    }
+
+    appNotification.classList.remove('hidden'); // Make the notification visible
+}
+
+/**
+ * Hides the in-app notification banner.
+ */
+function hideAppNotification() {
+    appNotification.classList.add('hidden'); // Hide the notification
+    appNotificationText.textContent = ''; // Clear the message text
+}
+
+
+// Add event listener to the close button of the message box
+messageBoxCloseBtn.addEventListener('click', hideMessageBox);
+
+// Show an in-app notification when the page loads, as a reminder
+window.onload = () => {
+    showAppNotification("Welcome back! Don't forget to reflect on your day and generate your devotional.", 'info');
+    // You can set a timeout to hide it automatically after a few seconds if desired
+    // setTimeout(hideAppNotification, 5000);
+};
+
+    </script>
+</body>
+</html>
