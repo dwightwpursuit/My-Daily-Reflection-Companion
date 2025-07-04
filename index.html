@@ -181,7 +181,7 @@ async function generateDevotional() {
         chatHistory.push({ role: "user", parts: [{ text: prompt }] });
         const payload = { contents: chatHistory };
 
-        const apiKey = ""; // Canvas will automatically provide this in runtime
+        const apiKey = "AIzaSyAj0SF2MdUlT0aW-yYK7NGACgcqTU-54Ag"; // Canvas will automatically provide this in runtime
 
         // Construct the API URL
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
