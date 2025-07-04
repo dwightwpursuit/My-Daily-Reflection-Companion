@@ -93,6 +93,7 @@ const devotionalTextDiv = document.getElementById('devotionalText');
 // Get references to new Journal related HTML elements
 const viewJournalBtn = document.getElementById('viewJournalBtn');
 const journalEntriesDiv = document.getElementById('journalEntries');
+const downloadJournalBtn = document.getElementById('downloadJournalBtn'); // NEW: Reference to download button
 
 /**
  * Displays a custom message box with a given message.
@@ -180,11 +181,7 @@ async function generateDevotional() {
         chatHistory.push({ role: "user", parts: [{ text: prompt }] });
         const payload = { contents: chatHistory };
 
-        // API Key (IMPORTANT: In a real-world production app, you would proxy this
-        // through a backend server to avoid exposing your API key directly in client-side code.
-        // For this learning project, we're using a direct client-side call as per instructions,
-        // assuming the Canvas environment handles the key securely.)
-        const apiKey = "AIzaSyAj0SF2MdUlT0aW-yYK7NGACgcqTU-54Ag"; // Canvas will automatically provide this in runtime
+        const apiKey = ""; // Canvas will automatically provide this in runtime
 
         // Construct the API URL
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -215,9 +212,8 @@ async function generateDevotional() {
             devotionalOutput.classList.remove('hidden'); // Make the output section visible
             showAppNotification("Devotional generated successfully!", 'success'); // Show success notification
 
-            // --- NEW: Save to Journal after successful generation ---
+            // Save to Journal after successful generation
             saveJournalEntry(dailySummary, devotional);
-            // --- END NEW ---
 
         } else {
             showMessageBox("Could not generate devotional. Unexpected API response format.");
@@ -293,6 +289,51 @@ function loadJournalEntries() {
     });
 }
 
+/**
+ * Downloads the journal entries as a plain text file.
+ */
+function downloadJournal() {
+    const existingEntries = JSON.parse(localStorage.getItem('devotionalJournal')) || [];
+
+    if (existingEntries.length === 0) {
+        showMessageBox("Your journal is empty. Generate some devotionals first!");
+        return;
+    }
+
+    let fileContent = "My Daily Reflection Journal\n\n";
+    existingEntries.forEach(entry => {
+        const entryDate = new Date(entry.date).toLocaleString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        fileContent += `--- Entry for ${entryDate} ---\n\n`;
+        fileContent += `My Daily Summary:\n${entry.summary}\n\n`;
+        fileContent += `My Daily Devotional:\n${entry.devotional}\n\n`;
+        fileContent += `----------------------------------------\n\n`;
+    });
+
+    // Create a Blob from the content
+    const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
+
+    // Create a temporary URL for the Blob
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary anchor element
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `My_Daily_Reflection_Journal_${new Date().toISOString().slice(0, 10)}.txt`; // Filename with current date
+
+    // Programmatically click the anchor to trigger download
+    document.body.appendChild(a); // Append to body is good practice
+    a.click(); // Simulate click
+    document.body.removeChild(a); // Clean up the temporary element
+
+    // Revoke the object URL to free up memory
+    URL.revokeObjectURL(url);
+
+    showAppNotification("Journal downloaded successfully!", 'success');
+}
+
+
 // Add event listener to the Generate Devotional button
 generateDevotionalBtn.addEventListener('click', generateDevotional);
 
@@ -306,6 +347,9 @@ viewJournalBtn.addEventListener('click', () => {
         viewJournalBtn.textContent = 'View Journal';
     }
 });
+
+// NEW: Add event listener to the Download Journal button
+downloadJournalBtn.addEventListener('click', downloadJournal);
 
     </script>
 </body>
