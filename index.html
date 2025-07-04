@@ -63,9 +63,12 @@
         <!-- Journal Section (initially hidden) -->
         <div class="mt-8 pt-8 border-t border-gray-200">
             <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Your Reflection Journal</h2>
-            <div class="text-center mb-4">
+            <div class="text-center mb-4 space-x-4"> <!-- Added space-x-4 for spacing between buttons -->
                 <button id="viewJournalBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full shadow-md transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-green-300">
                     View Journal
+                </button>
+                <button id="downloadJournalBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full shadow-md transform transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                    Download Journal
                 </button>
             </div>
             <div id="journalEntries" class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-inner hidden max-h-96 overflow-y-auto">
